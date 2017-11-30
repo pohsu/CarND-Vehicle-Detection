@@ -47,7 +47,7 @@ Here is an example using the `YUV` color space and HOG parameters of `orientatio
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-It is more like an iterative process. I first choose `HSV` as I thought saturation channel could be a good feature map separating cars and noncars. So I implemented the pipeline and tested with the video. The results were not very satisfactory, so I was then curious about how other color spaces perform. After some iterations, I discovered that the `YUV` colorspace seems to be robust against noise so I finally decided to settle on this choice.
+It is more like an iterative process. I first choose `HSV` as I thought saturation channel could be a good feature map separating cars and noncars. So I implemented the pipeline and tested with the video. The results were not very satisfactory, so I was then curious about how other color spaces perform. After some iterations, I discovered that the `YUV` color-space seems to be robust against noise so I finally decided to settle on this choice.
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
@@ -57,11 +57,13 @@ The code for this step is contained in the code cell titled `2. SVM Training` of
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-The code for this step is contained in `def find_cars_multi_scales(img, coords, svc, X_scaler, config):` and in lines 110 through 232 of the file called `process.py`.  I did multi-scale window searching from scale 1 to 4 with the base size of 64 x 64. The sample image can be seen:
+The code for this step is contained in `def find_cars_multi_scales(img, coords, svc, X_scaler, config):` and in lines 110 through 232 of the file called `process.py`.  I did multi-scale window searching from scale 1 to 4 with the base size of 64 x 64 and the overlap of 0.75 (2 cells). The sample image can be seen:
 
 ![alt text][image2]
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
+
+The details of how I optimize the entire pipeline and the classifier is explained in the later section as the improvement is an iterative process involving testing the pipeline with a short duration of "difficult" video clip.
 
 The code for this step is contained in `def find_cars_multi_scales(img, coords, svc, X_scaler, config):` and in lines 110 through 232 of the file called `process.py`. Ultimately I searched on four scales using YUV 3-channel HOG features plus spatially binned color at the size of 32 x 32 and histograms of color in the feature vector, which provided a nice result. The details are given:
 
@@ -81,6 +83,7 @@ The HOG map is obtained once and sub-sampled to fit different scales of windows 
 Here are some example images:
 
 ![alt text][image3]
+
 ---
 
 ### Video Implementation
@@ -100,7 +103,7 @@ The code for this step is contained in lines 234 through the end of the file cal
 
 ![alt text][image4]
 
-* Filtering: The low-pass filter is applied for the heatmap with the formula describing the low-pass filtering: `heatmap_new = (1-tao) * heatmap_old + tao * energy`. The energy is by using the condifence score and the tao determines the filtering strength (low tao implying stronger temporal filtering). I use 0.5 for the tao, which approximately corresponds to the weighted average of the past ~8 frames. Then the threshold was set to 1.5 to remove any heat points cooler than this value from the heatmap. I then used `scipy.ndimage.measurements.label()` to identify the car blocks in the heatmap and constructed bounding boxs around them.
+* Temporal filtering: The low-pass filter is applied for the heatmap with the formula describing the low-pass filtering: `heatmap_new = (1-tao) * heatmap_old + tao * energy`. The energy is by using the confidence score and the tao determines the filtering strength (low tao implying stronger temporal filtering). I use 0.5 for the tao, which approximately corresponds to the weighted average of the past ~8 frames. Then the threshold was set to 1.5 to remove any heat points cooler than this value from the heatmap. I then used `scipy.ndimage.measurements.label()` to identify the car blocks in the heatmap and constructed bounding boxes around them.
 
 ##### Here the resulting bounding boxes and the integrated heatmap from  `scipy.ndimage.measurements.label()` are drawn onto the last frame in the series:
 
@@ -109,7 +112,7 @@ The code for this step is contained in lines 234 through the end of the file cal
 ##### More results from a different set six frames:
 ![alt text][image6]
 
-* Negative Mining: I also used the negative mining approach by including some false positive samples into the non-vehicle dataset. This method is particularly useful against the false positives. I ended up collecting 88 more negative samples from the project video. The  
+* Negative Mining: I also used the negative mining approach by including some false positive samples into the non-vehicle dataset. This method is particularly useful against the false positives. I ended up collecting 88 more negative samples from the project video. In fact, I spent quite a lot of time on this method.
 
 ---
 
@@ -120,10 +123,10 @@ The code for this step is contained in lines 234 through the end of the file cal
 Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  There are some concerns and issues I would like to explain in details:
 
 * Classifier:
- A linear svm classifier is helpful in this project with a small dataset, but its performance is not very satisfactory. A more powerful classifier like NN-based one or CNNs should be used along with more sample images.
+ A linear SVM classifier is helpful in this project with a small dataset, but its performance is not very satisfactory. A more powerful classifier like NN-based one or CNNs should be used along with more sample images.
 
 * Feature tuning:
-I spent quite lots of time testing different colorspace and finally settle on `YUV`. But I really feel like CNN based classifiers could easily resolve this pain as this type of nonlinear mapping could be less sensitive to the CNNs (since CNNs have great nonlinearity).
+I spent quite lots of time testing different color-spaces and finally settle on `YUV`. But I really feel like CNN based classifiers could easily resolve this pain as this type of nonlinear mapping could be less sensitive to the CNNs (since CNNs have great nonlinearity).
 
 * Negative mining:
 This approach is super "useful" for the project video, but I suspect that it will help at the same level for other unseen samples; however, it does assist in generalizing the model better. The problem is the work is quite tedious and time-consuming.
